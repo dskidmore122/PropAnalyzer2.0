@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PropAnalyzer AI — Real Estate Deal Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1e2334;
+    --border: #2a3148;
+    --accent: #c9a84c;
+    --accent2: #e8c96d;
+    --text: #e8eaf0;
+    --muted: #7a8099;
+    --green: #4caf7d;
+    --red: #e05c5c;
+    --yellow: #e8a84c;
+    --radius: 14px;
+    --ai: #7c6ef5;
+    --ai2: #a89ef8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 20%, rgba(201,168,76,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(76,175,125,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 50%, rgba(124,110,245,0.03) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    padding: 32px 0 32px;
+  }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 7vw, 42px);
+    color: var(--accent2);
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+
+  .logo span { color: var(--text); }
+  .logo .ai-badge {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    background: linear-gradient(135deg, var(--ai), var(--ai2));
+    color: white;
+    padding: 2px 8px;
+    border-radius: 20px;
+    vertical-align: middle;
+    margin-left: 8px;
+    letter-spacing: 1px;
+  }
+
+  .tagline {
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 8px;
+    font-weight: 500;
+  }
+
+  /* Tab switcher */
+  .tab-bar {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    margin-bottom: 20px;
+    gap: 4px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .tab-btn.active {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .tab-btn.active.ai-tab { color: var(--ai2); }
+  .tab-btn.active.manual-tab { color: var(--accent2); }
+
+  /* AI Panel */
+  .ai-panel {
+    display: none;
+  }
+  .ai-panel.visible { display: block; animation: fadeIn 0.3s ease; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .ai-card {
+    background: var(--surface);
+    border: 1px solid rgba(124,110,245,0.3);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ai-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--ai), var(--ai2), var(--accent));
+  }
+
+  .ai-card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px;
+    color: var(--ai2);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ai-desc {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  .ai-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 14px;
+    outline: none;
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.6;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .ai-textarea:focus {
+    border-color: var(--ai);
+    box-shadow: 0 0 0 3px rgba(124,110,245,0.12);
+  }
+
+  .ai-textarea::placeholder { color: var(--muted); }
+
+  .ai-examples {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ai-example {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .ai-example:hover {
+    border-color: var(--ai);
+    color: var(--ai2);
+  }
+
+  .btn-ai {
+    width: 100%;
+    background: linear-gradient(135deg, var(--ai), var(--ai2));
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 18px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 20px rgba(124,110,245,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-ai:hover { box-shadow: 0 6px 28px rgba(124,110,245,0.45); }
+  .btn-ai:active { transform: scale(0.98); }
+  .btn-ai:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .ai-status {
+    display: none;
+    background: var(--surface);
+    border: 1px solid rgba(124,110,245,0.2);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--ai2);
+    text-align: center;
+  }
+
+  .ai-status.visible { display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(124,110,245,0.3);
+    border-top-color: var(--ai2);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .ai-filled-notice {
+    display: none;
+    background: rgba(124,110,245,0.08);
+    border: 1px solid rgba(124,110,245,0.25);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--ai2);
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ai-filled-notice.visible { display: flex; }
+  .ai-filled-notice button {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid rgba(124,110,245,0.3);
+    border-radius: 6px;
+    color: var(--ai2);
+    font-size: 11px;
+    padding: 3px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* Cards / form (same as before) */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title .icon { font-size: 18px; }
+
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 7px;
+  }
+
+  .input-wrap { position: relative; }
+
+  .prefix, .suffix {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    pointer-events: none;
+  }
+
+  .prefix { left: 14px; }
+  .suffix { right: 14px; }
+
+  input[type="text"],
+  input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .has-prefix input { padding-left: 28px; }
+  .has-suffix input { padding-right: 34px; }
+
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.12);
+  }
+
+  input.ai-filled {
+    border-color: rgba(124,110,245,0.4);
+    background: rgba(124,110,245,0.05);
+  }
+
+  .field-hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 5px;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  @media (max-width: 480px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  .btn-analyze {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #0f1117;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 18px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 20px rgba(201,168,76,0.25);
+  }
+
+  .btn-analyze:active { transform: scale(0.98); }
+  .btn-analyze:hover { box-shadow: 0 6px 28px rgba(201,168,76,0.4); }
+
+  /* Results */
+  #results {
+    display: none;
+    animation: slideUp 0.4s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .verdict {
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    text-align: center;
+    border: 1px solid;
+  }
+
+  .verdict.green { background: rgba(76,175,125,0.1); border-color: rgba(76,175,125,0.3); }
+  .verdict.yellow { background: rgba(232,168,76,0.1); border-color: rgba(232,168,76,0.3); }
+  .verdict.red { background: rgba(224,92,92,0.1); border-color: rgba(224,92,92,0.3); }
+
+  .verdict-emoji { font-size: 36px; margin-bottom: 8px; }
+
+  .verdict-label {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+
+  .verdict.green .verdict-label { color: var(--green); }
+  .verdict.yellow .verdict-label { color: var(--yellow); }
+  .verdict.red .verdict-label { color: var(--red); }
+
+  .verdict-sub { color: var(--muted); font-size: 13px; }
+
+  /* AI commentary in results */
+  .ai-commentary {
+    display: none;
+    background: var(--surface);
+    border: 1px solid rgba(124,110,245,0.25);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ai-commentary::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--ai), var(--ai2));
+  }
+
+  .ai-commentary.visible { display: block; }
+
+  .ai-commentary-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--ai2);
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ai-commentary-text {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 360px) {
+    .metrics-grid { grid-template-columns: 1fr; }
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .metric-card.pass::before { background: var(--green); }
+  .metric-card.fail::before { background: var(--red); }
+
+  .metric-name {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .metric-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .metric-card.pass .metric-value { color: var(--green); }
+  .metric-card.fail .metric-value { color: var(--red); }
+
+  .metric-benchmark { font-size: 11px; color: var(--muted); }
+
+  .metric-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-pass { background: rgba(76,175,125,0.15); color: var(--green); }
+  .badge-fail { background: rgba(224,92,92,0.15); color: var(--red); }
+
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-row .label { color: var(--muted); }
+
+  .breakdown-row .value {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+  }
+
+  .breakdown-row.highlight {
+    background: rgba(201,168,76,0.06);
+    margin: 0 -12px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border-bottom: none;
+    margin-bottom: 1px;
+  }
+
+  .breakdown-row.highlight .label { color: var(--text); font-weight: 600; }
+  .breakdown-row.highlight .value { color: var(--accent2); }
+
+  .positive { color: var(--green) !important; }
+  .negative { color: var(--red) !important; }
+
+  .section-divider {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 8px 0 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  .btn-reset {
+    width: 100%;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 14px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .btn-pdf {
+    width: 100%;
+    background: linear-gradient(135deg, #2a5a3a, #3a7a4a);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 18px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 20px rgba(76,175,125,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-pdf:hover { box-shadow: 0 6px 28px rgba(76,175,125,0.4); }
+  .btn-pdf:active { transform: scale(0.98); }
+
+  .btn-reset:hover { color: var(--text); border-color: var(--muted); }
+
+  html { scroll-behavior: smooth; }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    padding-top: 32px;
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">Prop<span>Analyzer</span> <span class="ai-badge">AI</span></div>
+    <div class="tagline">Real Estate Deal Calculator</div>
+  </header>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn ai-tab active" onclick="switchTab('ai')">✦ AI Analysis</button>
+    <button class="tab-btn manual-tab" onclick="switchTab('manual')">⚙ Manual Entry</button>
+  </div>
+
+  <!-- AI Tab -->
+  <div id="ai-panel" class="ai-panel visible">
+    <div class="ai-card">
+      <div class="ai-card-title">✦ Describe the property</div>
+      <div class="ai-desc">Tell me about a deal in plain English. Include the price, rent, location, and any details you know. I'll extract the numbers and fill in the form.</div>
+      <textarea class="ai-textarea" id="ai-input" placeholder="e.g. There's a duplex in Akron for $185,000. Each unit rents for $875/month. Taxes are about $3,200/year, insurance around $1,000. I'd put 20% down at 7.25% interest. Needs about $5k in repairs."></textarea>
+      <div class="ai-examples">
+        <span class="ai-example" onclick="fillExample(1)">Single family, $220k</span>
+        <span class="ai-example" onclick="fillExample(2)">Duplex with numbers</span>
+        <span class="ai-example" onclick="fillExample(3)">High-yield rental</span>
+      </div>
+    </div>
+    <button class="btn-ai" id="ai-btn" onclick="runAI()">
+      <span>✦</span> <span id="ai-btn-text">Analyze with AI</span>
+    </button>
+    <div class="ai-status" id="ai-status">
+      <div class="spinner"></div>
+      <span id="ai-status-text">Reading the deal...</span>
+    </div>
+  </div>
+
+  <!-- Form Section -->
+  <div id="form-section">
+
+    <div class="ai-filled-notice" id="ai-filled-notice">
+      <span>✦ AI filled these fields — review and adjust if needed</span>
+      <button onclick="clearAiFilled()">Clear AI</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🏠</span> Property Info</div>
+      <div class="field">
+        <label>Property Address</label>
+        <input type="text" id="address" placeholder="e.g. 123 Main St (optional)">
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Purchase Price</label>
+          <div class="input-wrap has-prefix">
+            <span class="prefix">$</span>
+            <input type="number" id="purchase_price" placeholder="300,000" value="">
+          </div>
+        </div>
+        <div class="field">
+          <label>Number of Units</label>
+          <input type="number" id="num_units" placeholder="1" value="1" min="1">
+        </div>
+      </div>
+      <div class="field">
+        <label>Monthly Rent Per Unit</label>
+        <div class="input-wrap has-prefix">
+          <span class="prefix">$</span>
+          <input type="number" id="monthly_rent" placeholder="2,000" value="">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🏦</span> Financing</div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Down Payment</label>
+          <div class="input-wrap has-suffix">
+            <input type="number" id="down_payment_pct" placeholder="20" value="20">
+            <span class="suffix">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Interest Rate</label>
+          <div class="input-wrap has-suffix">
+            <input type="number" id="interest_rate" placeholder="7.0" value="7.0" step="0.1">
+            <span class="suffix">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Loan Term</label>
+          <div class="input-wrap has-suffix">
+            <input type="number" id="loan_term" placeholder="30" value="30">
+            <span class="suffix">yrs</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Closing Costs</label>
+          <div class="input-wrap has-suffix">
+            <input type="number" id="closing_cost_pct" placeholder="3" value="3" step="0.5">
+            <span class="suffix">%</span>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Rehab / Repair Costs</label>
+        <div class="input-wrap has-prefix">
+          <span class="prefix">$</span>
+          <input type="number" id="rehab_costs" placeholder="0" value="0">
+        </div>
+        <div class="field-hint">Leave at 0 if buying move-in ready</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📊</span> Annual Expenses</div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Property Taxes / yr</label>
+          <div class="input-wrap has-prefix">
+            <span class="prefix">$</span>
+            <input type="number" id="property_tax" placeholder="3,600" value="">
+          </div>
+        </div>
+        <div class="field">
+          <label>Insurance / yr</label>
+          <div class="input-wrap has-prefix">
+            <span class="prefix">$</span>
+            <input type="number" id="insurance" placeholder="1,200" value="">
+          </div>
+        </div>
+        <div class="field">
+          <label>Maintenance / yr</label>
+          <div class="input-wrap has-prefix">
+            <span class="prefix">$</span>
+            <input type="number" id="maintenance" placeholder="auto (1%)">
+          </div>
+          <div class="field-hint">Defaults to 1% of purchase price</div>
+        </div>
+        <div class="field">
+          <label>Property Mgmt / yr</label>
+          <div class="input-wrap has-prefix">
+            <span class="prefix">$</span>
+            <input type="number" id="property_mgmt" placeholder="0" value="0">
+          </div>
+        </div>
+        <div class="field">
+          <label>Utilities / yr</label>
+          <div class="input-wrap has-prefix">
+            <span class="prefix">$</span>
+            <input type="number" id="utilities" placeholder="0" value="0">
+          </div>
+        </div>
+        <div class="field">
+          <label>Other Expenses / yr</label>
+          <div class="input-wrap has-prefix">
+            <span class="prefix">$</span>
+            <input type="number" id="other_expenses" placeholder="0" value="0">
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Vacancy Rate</label>
+        <div class="input-wrap has-suffix">
+          <input type="number" id="vacancy_rate" placeholder="5" value="5" step="0.5">
+          <span class="suffix">%</span>
+        </div>
+        <div class="field-hint">Typical range is 3–8%</div>
+      </div>
+    </div>
+
+    <button class="btn-analyze" onclick="analyze()">⚡ Analyze This Deal</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+
+    <div class="verdict" id="verdict-banner">
+      <div class="verdict-emoji" id="verdict-emoji"></div>
+      <div class="verdict-label" id="verdict-label"></div>
+      <div class="verdict-sub" id="verdict-sub"></div>
+    </div>
+
+    <!-- AI Commentary -->
+    <div class="ai-commentary" id="ai-commentary">
+      <div class="ai-commentary-title">✦ AI Insight</div>
+      <div class="ai-commentary-text" id="ai-commentary-text"></div>
+    </div>
+
+    <div class="metrics-grid" id="metrics-grid"></div>
+    <div class="card" id="breakdown-card"></div>
+    <div class="card" id="mortgage-card"></div>
+
+    <button class="btn-analyze" onclick="analyze()" style="margin-bottom:10px">🔄 Recalculate</button>
+    <button class="btn-pdf" onclick="downloadPDF()">📄 Download PDF Report</button>
+    <button class="btn-reset" onclick="reset()">← Start Over</button>
+  </div>
+
+  <footer>PropAnalyzer AI &mdash; For educational purposes only. Consult a financial advisor before investing.</footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script>
+  let aiFilledFields = [];
+  let lastAiCommentary = '';
+  let activeTab = 'ai';
+  let lastResults = null;
+
+  function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+
+    const aiPanel = document.getElementById('ai-panel');
+    const formSection = document.getElementById('form-section');
+
+    if (tab === 'ai') {
+      aiPanel.classList.add('visible');
+      formSection.style.display = 'none';
+    } else {
+      aiPanel.classList.remove('visible');
+      formSection.style.display = 'block';
+    }
+  }
+
+  function fillExample(n) {
+    const examples = {
+      1: "Single family home in Akron Ohio for $195,000. Monthly rent $1,450. Taxes $2,800/year, insurance $900/year. 20% down at 7% interest rate 30 year loan.",
+      2: "Duplex in Canton for $230,000. Each unit rents for $950/month. Property taxes $4,200/year, insurance $1,400/year. Needs $8,000 in repairs. 25% down, 7.5% rate.",
+      3: "4-unit apartment building asking $380,000 in Youngstown. Rents are $650/month per unit. Taxes $5,500/year, insurance $2,000/year. 25% down at 7.25%. Property manager costs $200/month."
+    };
+    document.getElementById('ai-input').value = examples[n];
+  }
+
+  function parseDescription(text) {
+    const t = text.toLowerCase().replace(/,/g, '');
+    const result = {
+      purchase_price: null, num_units: null, monthly_rent: null,
+      down_payment_pct: null, interest_rate: null, loan_term: null,
+      closing_cost_pct: null, rehab_costs: null, property_tax: null,
+      insurance: null, maintenance: null, property_mgmt: null,
+      utilities: null, other_expenses: null, vacancy_rate: null,
+      address: null, commentary: null
+    };
+
+    // Helper: extract number after pattern
+    function grab(patterns, txt) {
+      for (const p of patterns) {
+        const m = txt.match(p);
+        if (m) {
+          const raw = m[1].replace(/[\$,]/g, '');
+          const n = parseFloat(raw);
+          if (!isNaN(n)) return { value: n, match: m };
+        }
+      }
+      return null;
+    }
+
+    // Helper: parse dollar amounts that might use k shorthand
+    function parseDollar(str) {
+      let s = str.replace(/[\$,\s]/g, '');
+      let mult = 1;
+      if (s.endsWith('k')) { mult = 1000; s = s.slice(0, -1); }
+      else if (s.endsWith('m')) { mult = 1000000; s = s.slice(0, -1); }
+      const n = parseFloat(s);
+      return isNaN(n) ? null : n * mult;
+    }
+
+    // Purchase price
+    const pricePatterns = [
+      /(?:asking|listed?|price[d]?|for|at|costs?|priced at|purchase price|sale price|buy for|buying for|offer(?:ing)?)\s*\$?([\d,.]+[km]?)/i,
+      /\$([\d,.]+[km]?)\s*(?:purchase|asking|list|sale|house|home|property|duplex|triplex|quad|fourplex|building|unit|apartment)/i,
+      /\$([\d,.]+[km]?)/i,
+    ];
+    for (const p of pricePatterns) {
+      const m = text.match(p);
+      if (m) {
+        const v = parseDollar(m[1]);
+        if (v && v >= 20000) { result.purchase_price = v; break; }
+      }
+    }
+
+    // Number of units
+    const unitPatterns = [
+      /(\d+)\s*[-\s]?\s*(?:unit|plex)/i,
+      /(?:duplex|double)/i,
+      /(?:triplex|triple)/i,
+      /(?:quadplex|fourplex|quad)/i,
+      /(\d+)\s*(?:bed(?:room)?s?\s+)?(?:apartment|unit)/i,
+    ];
+    if (/duplex|double/i.test(text)) result.num_units = 2;
+    else if (/triplex|triple|tri-plex/i.test(text)) result.num_units = 3;
+    else if (/quadplex|fourplex|quad|four-plex|4-plex/i.test(text)) result.num_units = 4;
+    else {
+      const um = text.match(/(\d+)\s*[-\s]?\s*(?:unit|plex)/i);
+      if (um) result.num_units = parseInt(um[1]);
+      else {
+        const am = text.match(/(\d+)\s*(?:apartment|unit)s?\s*(?:building)?/i);
+        if (am) result.num_units = parseInt(am[1]);
+      }
+    }
+    if (!result.num_units) {
+      if (/single\s*family|sfh|single\s*home/i.test(text)) result.num_units = 1;
+    }
+
+    // Monthly rent
+    const rentPatterns = [
+      /(?:rent(?:s|ed|ing)?|rents?\s+(?:for|at|is|are))\s*\$?([\d,.]+[km]?)\s*(?:\/|\s*per\s*)\s*(?:mo|month)/i,
+      /(?:rent(?:s|ed|ing)?|rents?\s+(?:for|at|is|are))\s*\$?([\d,.]+[km]?)/i,
+      /\$?([\d,.]+[km]?)\s*(?:\/|\s*per\s*)\s*(?:mo|month)\s*(?:rent|per\s*unit|each|\/\s*unit)?/i,
+      /(?:monthly\s+rent|rent\s+(?:per|each|a)\s+(?:unit|month))\s*(?:of|is|at|:)?\s*\$?([\d,.]+[km]?)/i,
+      /(?:each\s+(?:unit|side)\s+rents?\s+(?:for|at)?)\s*\$?([\d,.]+[km]?)/i,
+    ];
+    for (const p of rentPatterns) {
+      const m = text.match(p);
+      if (m) {
+        const v = parseDollar(m[1]);
+        if (v && v >= 100 && v <= 50000) { result.monthly_rent = v; break; }
+      }
+    }
+
+    // Down payment percentage
+    const downPatterns = [
+      /(\d+(?:\.\d+)?)\s*%?\s*(?:down|dp)/i,
+      /(?:down\s*(?:payment)?|dp)\s*(?:of|is|at|:)?\s*(\d+(?:\.\d+)?)\s*%/i,
+    ];
+    for (const p of downPatterns) {
+      const m = text.match(p);
+      if (m) {
+        const v = parseFloat(m[1]);
+        if (v > 0 && v <= 100) { result.down_payment_pct = v; break; }
+      }
+    }
+
+    // Interest rate
+    const ratePatterns = [
+      /(\d+(?:\.\d+)?)\s*%\s*(?:interest|rate|apr|int)/i,
+      /(?:interest\s*(?:rate)?|rate|apr)\s*(?:of|is|at|:)?\s*(\d+(?:\.\d+)?)\s*%/i,
+      /(?:at|@)\s*(\d+(?:\.\d+)?)\s*%/i,
+    ];
+    for (const p of ratePatterns) {
+      const m = text.match(p);
+      if (m) {
+        const v = parseFloat(m[1]);
+        if (v > 0 && v <= 30) { result.interest_rate = v; break; }
+      }
+    }
+    // Fallback: look for X.XX% pattern that could be rate (between 2-15%)
+    if (!result.interest_rate) {
+      const allPcts = [...text.matchAll(/(\d+(?:\.\d+)?)\s*%/g)];
+      for (const m of allPcts) {
+        const v = parseFloat(m[1]);
+        if (v >= 2 && v <= 15 && v !== result.down_payment_pct && v !== 5) {
+          result.interest_rate = v; break;
+        }
+      }
+    }
+
+    // Loan term
+    const termPatterns = [
+      /(\d+)\s*[-\s]?\s*(?:year|yr)\s*(?:loan|term|mortgage|fixed|arm)/i,
+      /(?:loan\s*term|term|mortgage)\s*(?:of|is|at|:)?\s*(\d+)\s*(?:year|yr)/i,
+    ];
+    for (const p of termPatterns) {
+      const m = text.match(p);
+      if (m) {
+        const v = parseInt(m[1]);
+        if ([10, 15, 20, 25, 30].includes(v)) { result.loan_term = v; break; }
+      }
+    }
+
+    // Rehab / repair costs
+    const rehabPatterns = [
+      /(?:rehab|repair|reno|renovation|fix[\s-]?up|needs?|work)\s*(?:costs?|budget|estimate|of|about|around|roughly|approximately|:)?\s*\$?([\d,.]+[km]?)/i,
+      /\$?([\d,.]+[km]?)\s*(?:in|of|for|worth of)?\s*(?:rehab|repair|reno|renovation|fix[\s-]?up|work)/i,
+    ];
+    for (const p of rehabPatterns) {
+      const m = text.match(p);
+      if (m) {
+        const v = parseDollar(m[1]);
+        if (v && v > 0) { result.rehab_costs = v; break; }
+      }
+    }
+
+    // Property tax (annual)
+    const taxPatterns = [
+      /(?:property\s*)?tax(?:es)?\s*(?:of|is|are|at|about|around|roughly|approximately|:)?\s*\$?([\d,.]+[km]?)\s*(?:\/|\s*per\s*)?\s*(?:yr|year|annual)?/i,
+      /\$?([\d,.]+[km]?)\s*(?:\/|\s*per\s*)\s*(?:yr|year)\s*(?:in\s+)?tax/i,
+      /\$?([\d,.]+[km]?)\s*(?:in\s+)?(?:property\s*)?tax/i,
+    ];
+    for (const p of taxPatterns) {
+      const m = text.match(p);
+      if (m) {
+        const v = parseDollar(m[1]);
+        if (v && v > 0) {
+          // If it's per month, multiply by 12
+          if (/tax.*\/\s*mo|tax.*per\s*mo/i.test(m[0])) result.property_tax = v * 12;
+          else result.property_tax = v;
+          break;
+        }
+      }
+    }
+
+    // Insurance (annual)
+    const insPatterns = [
+      /(?:insurance|ins)\s*(?:of|is|at|about|around|roughly|approximately|costs?|:)?\s*\$?([\d,.]+[km]?)\s*(?:\/|\s*per\s*)?\s*(?:yr|year|annual)?/i,
+      /\$?([\d,.]+[km]?)\s*(?:\/|\s*per\s*)\s*(?:yr|year)\s*(?:for\s+)?insurance/i,
+      /\$?([\d,.]+[km]?)\s*(?:in\s+|for\s+)?insurance/i,
+    ];
+    for (const p of insPatterns) {
+      const m = text.match(p);
+      if (m) {
+        const v = parseDollar(m[1]);
+        if (v && v > 0) {
+          if (/ins.*\/\s*mo|ins.*per\s*mo/i.test(m[0])) result.insurance = v * 12;
+          else result.insurance = v;
+          break;
+        }
+      }
+    }
+
+    // Property management
+    const mgmtPatterns = [
+      /(?:property\s*)?(?:manage(?:ment|r)|mgmt|pm)\s*(?:costs?|fee|of|is|at|about|:)?\s*\$?([\d,.]+[km]?)\s*(?:\/|\s*per\s*)?\s*(?:mo|month)/i,
+      /(?:property\s*)?(?:manage(?:ment|r)|mgmt|pm)\s*(?:costs?|fee|of|is|at|about|:)?\s*(\d+(?:\.\d+)?)\s*%/i,
+      /\$?([\d,.]+[km]?)\s*(?:\/|\s*per\s*)\s*(?:mo|month)\s*(?:for\s+)?(?:manage|mgmt|pm)/i,
+    ];
+    for (const p of mgmtPatterns) {
+      const m = text.match(p);
+      if (m) {
+        const raw = m[1].replace(/[\$,]/g, '');
+        const v = parseFloat(raw);
+        if (v > 0) {
+          // Check if percentage
+          if (m[0].includes('%') && result.monthly_rent && result.num_units) {
+            const grossAnnual = result.monthly_rent * (result.num_units || 1) * 12;
+            result.property_mgmt = grossAnnual * (v / 100);
+          } else if (v < 100 && m[0].includes('%')) {
+            // Can't calculate without rent, skip
+          } else {
+            // Dollar amount — check if monthly
+            if (/\/\s*mo|per\s*mo|month/i.test(m[0])) result.property_mgmt = v * 12;
+            else result.property_mgmt = v;
+          }
+          break;
+        }
+      }
+    }
+
+    // Vacancy rate
+    const vacPatterns = [
+      /(?:vacancy|vac)\s*(?:rate|of|is|at|:)?\s*(\d+(?:\.\d+)?)\s*%/i,
+      /(\d+(?:\.\d+)?)\s*%\s*vacancy/i,
+    ];
+    for (const p of vacPatterns) {
+      const m = text.match(p);
+      if (m) {
+        const v = parseFloat(m[1]);
+        if (v >= 0 && v <= 50) { result.vacancy_rate = v; break; }
+      }
+    }
+
+    // Utilities
+    const utilPatterns = [
+      /(?:utilit(?:y|ies))\s*(?:costs?|of|is|are|at|about|:)?\s*\$?([\d,.]+[km]?)\s*(?:\/|\s*per\s*)?\s*(?:mo|month)/i,
+      /\$?([\d,.]+[km]?)\s*(?:\/|\s*per\s*)\s*(?:mo|month)\s*(?:in\s+)?utilit/i,
+    ];
+    for (const p of utilPatterns) {
+      const m = text.match(p);
+      if (m) {
+        const v = parseDollar(m[1]);
+        if (v && v > 0) { result.utilities = v * 12; break; }
+      }
+    }
+
+    // Address — try to grab a street address pattern
+    const addrMatch = text.match(/(\d+\s+[A-Za-z]+(?:\s+[A-Za-z]+)*\s+(?:st|street|ave|avenue|blvd|boulevard|rd|road|dr|drive|ln|lane|way|ct|court|pl|place|cir|circle)\.?(?:\s*,?\s*[A-Za-z\s]+)?)/i);
+    if (addrMatch) result.address = addrMatch[1].trim();
+
+    // Generate commentary based on extracted numbers
+    if (result.purchase_price && result.monthly_rent) {
+      const units = result.num_units || 1;
+      const grossMonthly = result.monthly_rent * units;
+      const onePct = (grossMonthly / result.purchase_price) * 100;
+      const parts = [];
+
+      if (onePct >= 1) {
+        parts.push('This property hits the 1% rule at ' + onePct.toFixed(2) + '%, which is a good sign for cash flow.');
+      } else {
+        parts.push('This property comes in at ' + onePct.toFixed(2) + '% on the 1% rule, which is below the target — you\'ll want strong numbers elsewhere to compensate.');
+      }
+
+      if (result.rehab_costs && result.rehab_costs > 0) {
+        parts.push('Factor in the $' + result.rehab_costs.toLocaleString() + ' rehab cost when calculating your total cash needed.');
+      }
+
+      if (!result.property_tax) {
+        parts.push('No property tax was mentioned — make sure to look that up, as it significantly impacts cash flow.');
+      }
+
+      result.commentary = parts.join(' ');
+    }
+
+    return result;
+  }
+
+  async function runAI() {
+    const input = document.getElementById('ai-input').value.trim();
+    if (!input) { alert('Describe the property first.'); return; }
+
+    const btn = document.getElementById('ai-btn');
+    const btnText = document.getElementById('ai-btn-text');
+    const status = document.getElementById('ai-status');
+    const statusText = document.getElementById('ai-status-text');
+
+    btn.disabled = true;
+    btnText.textContent = 'Analyzing...';
+    status.classList.add('visible');
+    statusText.textContent = 'Reading the deal...';
+
+    try {
+      await new Promise(res => setTimeout(res, 400));
+      statusText.textContent = 'Extracting numbers...';
+
+      const parsed = parseDescription(input);
+
+      await new Promise(res => setTimeout(res, 300));
+      statusText.textContent = 'Filling in the form...';
+
+      // Fill form fields
+      aiFilledFields = [];
+      const fieldMap = [
+        'purchase_price', 'num_units', 'monthly_rent', 'down_payment_pct',
+        'interest_rate', 'loan_term', 'closing_cost_pct', 'rehab_costs',
+        'property_tax', 'insurance', 'maintenance', 'property_mgmt',
+        'utilities', 'other_expenses', 'vacancy_rate', 'address'
+      ];
+
+      fieldMap.forEach(field => {
+        if (parsed[field] !== null && parsed[field] !== undefined) {
+          const el = document.getElementById(field);
+          if (el) {
+            el.value = parsed[field];
+            el.classList.add('ai-filled');
+            aiFilledFields.push(field);
+          }
+        }
+      });
+
+      lastAiCommentary = parsed.commentary || '';
+
+      // Switch to form tab
+      activeTab = 'manual';
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('.tab-btn.manual-tab').classList.add('active');
+      document.getElementById('ai-panel').classList.remove('visible');
+      document.getElementById('form-section').style.display = 'block';
+
+      if (aiFilledFields.length > 0) {
+        document.getElementById('ai-filled-notice').classList.add('visible');
+      }
+
+      // Auto-analyze
+      setTimeout(() => analyze(), 300);
+
+    } catch (err) {
+      console.error(err);
+      alert('Couldn\'t extract enough numbers from that description. Try including the price and rent more clearly, like: "$195,000 home, rents for $1,450/month"');
+    } finally {
+      btn.disabled = false;
+      btnText.textContent = 'Analyze with AI';
+      status.classList.remove('visible');
+    }
+  }
+
+  function clearAiFilled() {
+    aiFilledFields.forEach(field => {
+      const el = document.getElementById(field);
+      if (el) {
+        el.value = '';
+        el.classList.remove('ai-filled');
+      }
+    });
+    aiFilledFields = [];
+    document.getElementById('ai-filled-notice').classList.remove('visible');
+    lastAiCommentary = '';
+  }
+
+  function val(id, fallback = 0) {
+    const v = parseFloat(document.getElementById(id).value);
+    return isNaN(v) ? fallback : v;
+  }
+
+  function fmt(n, decimals = 0) {
+    return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
+
+  function fmtCurrency(n) {
+    const abs = Math.abs(n);
+    const formatted = abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (n < 0 ? '-$' : '$') + formatted;
+  }
+
+  function calcMortgage(loan, annualRate, years) {
+    if (annualRate === 0) return loan / (years * 12);
+    const r = annualRate / 100 / 12;
+    const n = years * 12;
+    return loan * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+  }
+
+  function analyze() {
+    const purchasePrice = val('purchase_price');
+    if (!purchasePrice) { alert('Please enter a purchase price.'); return; }
+
+    const numUnits = val('num_units', 1);
+    const monthlyRent = val('monthly_rent');
+    if (!monthlyRent) { alert('Please enter a monthly rent amount.'); return; }
+
+    const downPct = val('down_payment_pct', 20);
+    const interestRate = val('interest_rate', 7);
+    const loanTerm = val('loan_term', 30);
+    const closingCostPct = val('closing_cost_pct', 3);
+    const rehabCosts = val('rehab_costs', 0);
+    const propertyTax = val('property_tax', 0);
+    const insurance = val('insurance', 0);
+    const maintenanceInput = document.getElementById('maintenance').value;
+    const maintenance = maintenanceInput === '' ? purchasePrice * 0.01 : parseFloat(maintenanceInput) || 0;
+    const propertyMgmt = val('property_mgmt', 0);
+    const utilities = val('utilities', 0);
+    const otherExpenses = val('other_expenses', 0);
+    const vacancyRate = val('vacancy_rate', 5);
+
+    const grossMonthlyRent = monthlyRent * numUnits;
+    const vacancyLoss = grossMonthlyRent * (vacancyRate / 100);
+    const effectiveMonthlyIncome = grossMonthlyRent - vacancyLoss;
+    const annualIncome = effectiveMonthlyIncome * 12;
+
+    const annualExpenses = propertyTax + insurance + maintenance + propertyMgmt + utilities + otherExpenses;
+    const noi = annualIncome - annualExpenses;
+
+    const downPayment = purchasePrice * (downPct / 100);
+    const loanAmount = purchasePrice - downPayment;
+    const monthlyMortgage = calcMortgage(loanAmount, interestRate, loanTerm);
+    const annualDebtService = monthlyMortgage * 12;
+
+    const annualCashFlow = noi - annualDebtService;
+    const monthlyCashFlow = annualCashFlow / 12;
+
+    const capRate = purchasePrice > 0 ? (noi / purchasePrice) * 100 : 0;
+    const closingCosts = purchasePrice * (closingCostPct / 100);
+    const totalCashInvested = downPayment + closingCosts + rehabCosts;
+    const cashOnCash = totalCashInvested > 0 ? (annualCashFlow / totalCashInvested) * 100 : 0;
+    const dscr = annualDebtService > 0 ? noi / annualDebtService : 0;
+    const annualGrossRent = grossMonthlyRent * 12;
+    const grm = annualGrossRent > 0 ? purchasePrice / annualGrossRent : 0;
+    const onePctRule = purchasePrice > 0 ? (grossMonthlyRent / purchasePrice) * 100 : 0;
+
+    const passes = [
+      capRate >= 6,
+      cashOnCash >= 8,
+      dscr >= 1.25,
+      grm < 10,
+      onePctRule >= 1,
+      monthlyCashFlow > 0
+    ];
+    const score = passes.filter(Boolean).length;
+
+    renderResults({
+      score, passes, purchasePrice, downPayment, loanAmount, closingCosts,
+      rehabCosts, totalCashInvested, grossMonthlyRent, vacancyLoss,
+      effectiveMonthlyIncome, annualIncome, annualExpenses, noi,
+      annualDebtService, annualCashFlow, monthlyCashFlow,
+      capRate, cashOnCash, dscr, grm, onePctRule,
+      monthlyMortgage, interestRate, loanTerm, numUnits, monthlyRent
+    });
+
+    // Store for PDF export
+    lastResults = {
+      score, passes, purchasePrice, downPayment, loanAmount, closingCosts,
+      rehabCosts, totalCashInvested, grossMonthlyRent, vacancyLoss,
+      effectiveMonthlyIncome, annualIncome, annualExpenses, noi,
+      annualDebtService, annualCashFlow, monthlyCashFlow,
+      capRate, cashOnCash, dscr, grm, onePctRule,
+      monthlyMortgage, interestRate, loanTerm, numUnits, monthlyRent,
+      address: document.getElementById('address').value || 'N/A',
+      propertyTax: propertyTax,
+      insurance: insurance,
+      maintenance: maintenance,
+      propertyMgmtAnnual: propertyMgmt,
+      utilitiesAnnual: utilities,
+      otherExpensesAnnual: otherExpenses,
+      vacancyRate: vacancyRate,
+      downPct: downPct,
+      closingCostPct: val('closing_cost_pct', 3),
+      commentary: lastAiCommentary
+    };
+  }
+
+  function renderResults(r) {
+    const banner = document.getElementById('verdict-banner');
+    banner.className = 'verdict';
+    let emoji, label, sub, cls;
+
+    if (r.score >= 5) {
+      emoji = '🟢'; label = 'Strong Deal'; cls = 'green';
+      sub = `${r.score}/6 metrics passing — this looks promising!`;
+    } else if (r.score >= 3) {
+      emoji = '🟡'; label = 'Average Deal'; cls = 'yellow';
+      sub = `${r.score}/6 metrics passing — negotiate or run the numbers again.`;
+    } else {
+      emoji = '🔴'; label = 'Weak Deal'; cls = 'red';
+      sub = `${r.score}/6 metrics passing — the numbers don't favor this one.`;
+    }
+
+    banner.classList.add(cls);
+    document.getElementById('verdict-emoji').textContent = emoji;
+    document.getElementById('verdict-label').textContent = label;
+    document.getElementById('verdict-sub').textContent = sub;
+
+    // AI Commentary
+    const commentary = document.getElementById('ai-commentary');
+    const commentaryText = document.getElementById('ai-commentary-text');
+    if (lastAiCommentary) {
+      commentaryText.textContent = lastAiCommentary;
+      commentary.classList.add('visible');
+    } else {
+      commentary.classList.remove('visible');
+    }
+
+    const metrics = [
+      { name: 'Cap Rate', value: r.capRate.toFixed(2) + '%', pass: r.passes[0], benchmark: 'Target: ≥ 6%' },
+      { name: 'Cash-on-Cash', value: r.cashOnCash.toFixed(2) + '%', pass: r.passes[1], benchmark: 'Target: ≥ 8%' },
+      { name: 'DSCR', value: r.dscr.toFixed(2), pass: r.passes[2], benchmark: 'Target: ≥ 1.25' },
+      { name: 'Rent Multiplier', value: r.grm.toFixed(1) + 'x', pass: r.passes[3], benchmark: 'Target: < 10x' },
+      { name: '1% Rule', value: r.onePctRule.toFixed(2) + '%', pass: r.passes[4], benchmark: 'Target: ≥ 1%' },
+      { name: 'Monthly Cash Flow', value: fmtCurrency(r.monthlyCashFlow), pass: r.passes[5], benchmark: 'Target: > $0' },
+    ];
+
+    document.getElementById('metrics-grid').innerHTML = metrics.map(m => `
+      <div class="metric-card ${m.pass ? 'pass' : 'fail'}">
+        <div class="metric-name">${m.name}</div>
+        <div class="metric-value">${m.value}</div>
+        <div class="metric-benchmark">
+          ${m.benchmark} &nbsp;
+          <span class="metric-badge ${m.pass ? 'badge-pass' : 'badge-fail'}">${m.pass ? 'PASS' : 'FAIL'}</span>
+        </div>
+      </div>
+    `).join('');
+
+    document.getElementById('breakdown-card').innerHTML = `
+      <div class="card-title"><span class="icon">💵</span> Financial Breakdown</div>
+      <div class="section-divider">Cash to Close</div>
+      <div class="breakdown-row">
+        <span class="label">Down Payment (${((r.downPayment/r.purchasePrice)*100).toFixed(0)}%)</span>
+        <span class="value">${fmtCurrency(r.downPayment)}</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="label">Closing Costs</span>
+        <span class="value">${fmtCurrency(r.closingCosts)}</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="label">Rehab / Repairs</span>
+        <span class="value">${fmtCurrency(r.rehabCosts)}</span>
+      </div>
+      <div class="breakdown-row highlight">
+        <span class="label">Total Cash Needed</span>
+        <span class="value">${fmtCurrency(r.totalCashInvested)}</span>
+      </div>
+
+      <div class="section-divider" style="margin-top:16px">Annual Income</div>
+      <div class="breakdown-row">
+        <span class="label">Gross Rent (${r.numUnits} unit × $${fmt(r.monthlyRent)}/mo)</span>
+        <span class="value">${fmtCurrency(r.grossMonthlyRent * 12)}</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="label">Vacancy Loss</span>
+        <span class="value negative">-${fmtCurrency(r.vacancyLoss * 12)}</span>
+      </div>
+      <div class="breakdown-row highlight">
+        <span class="label">Effective Income</span>
+        <span class="value">${fmtCurrency(r.annualIncome)}</span>
+      </div>
+
+      <div class="section-divider" style="margin-top:16px">Annual Expenses & Cash Flow</div>
+      <div class="breakdown-row">
+        <span class="label">Operating Expenses</span>
+        <span class="value negative">-${fmtCurrency(r.annualExpenses)}</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="label">Net Operating Income</span>
+        <span class="value">${fmtCurrency(r.noi)}</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="label">Annual Debt Service</span>
+        <span class="value negative">-${fmtCurrency(r.annualDebtService)}</span>
+      </div>
+      <div class="breakdown-row highlight">
+        <span class="label">Annual Cash Flow</span>
+        <span class="value ${r.annualCashFlow >= 0 ? 'positive' : 'negative'}">${fmtCurrency(r.annualCashFlow)}</span>
+      </div>
+      <div class="breakdown-row highlight">
+        <span class="label">Monthly Cash Flow</span>
+        <span class="value ${r.monthlyCashFlow >= 0 ? 'positive' : 'negative'}">${fmtCurrency(r.monthlyCashFlow)}</span>
+      </div>
+    `;
+
+    document.getElementById('mortgage-card').innerHTML = `
+      <div class="card-title"><span class="icon">🏦</span> Mortgage Details</div>
+      <div class="breakdown-row">
+        <span class="label">Loan Amount</span>
+        <span class="value">${fmtCurrency(r.loanAmount)}</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="label">Interest Rate</span>
+        <span class="value">${r.interestRate.toFixed(2)}%</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="label">Loan Term</span>
+        <span class="value">${r.loanTerm} years</span>
+      </div>
+      <div class="breakdown-row highlight">
+        <span class="label">Monthly Payment (P&I)</span>
+        <span class="value">${fmtCurrency(r.monthlyMortgage)}</span>
+      </div>
+    `;
+
+    document.getElementById('form-section').style.display = 'none';
+    document.getElementById('ai-panel').classList.remove('visible');
+    document.getElementById('results').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function reset() {
+    document.getElementById('form-section').style.display = 'none';
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('ai-panel').classList.add('visible');
+
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.tab-btn.ai-tab').classList.add('active');
+
+    lastAiCommentary = '';
+    lastResults = null;
+    aiFilledFields = [];
+    document.getElementById('ai-filled-notice').classList.remove('visible');
+    document.getElementById('ai-input').value = '';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function downloadPDF() {
+    if (!lastResults) { alert('Run an analysis first.'); return; }
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      alert('PDF library is still loading. Please check your internet connection and try again in a few seconds.');
+      return;
+    }
+    const r = lastResults;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'letter');
+    const pw = 215.9;
+    const ph = 279.4;
+    const ml = 20;
+    const mr = 20;
+    const cw = pw - ml - mr;
+    let y = 0;
+
+    const colors = {
+      bg: [15, 17, 23],
+      surface: [24, 28, 39],
+      surface2: [30, 35, 52],
+      border: [42, 49, 72],
+      accent: [201, 168, 76],
+      accent2: [232, 201, 109],
+      text: [232, 234, 240],
+      muted: [122, 128, 153],
+      green: [76, 175, 125],
+      red: [224, 92, 92],
+      yellow: [232, 168, 76],
+      ai: [124, 110, 245],
+      ai2: [168, 158, 248],
+      white: [255, 255, 255],
+      darkText: [30, 35, 52],
+    };
+
+    function fc(c) { doc.setFillColor(c[0], c[1], c[2]); }
+    function tc(c) { doc.setTextColor(c[0], c[1], c[2]); }
+    function dc(c) { doc.setDrawColor(c[0], c[1], c[2]); }
+    function $(n) { return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function $$(n) { const a = Math.abs(n); const f = a.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); return (n < 0 ? '-$' : '$') + f; }
+
+    function checkPage(needed) {
+      if (y + needed > ph - 20) {
+        doc.addPage();
+        y = 0;
+        // Dark bg
+        fc(colors.bg);
+        doc.rect(0, 0, pw, ph, 'F');
+        y = 20;
+      }
+    }
+
+    // PAGE 1 — Dark background
+    fc(colors.bg);
+    doc.rect(0, 0, pw, ph, 'F');
+
+    // Header bar
+    fc(colors.surface);
+    doc.rect(0, 0, pw, 48, 'F');
+    dc(colors.border);
+    doc.line(0, 48, pw, 48);
+
+    // Accent line at top
+    fc(colors.accent);
+    doc.rect(0, 0, pw, 2, 'F');
+
+    // Logo text
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    tc(colors.accent2);
+    doc.text('Prop', ml, 24);
+    const propW = doc.getTextWidth('Prop');
+    tc(colors.text);
+    doc.text('Analyzer', ml + propW, 24);
+    const analyzerW = doc.getTextWidth('Analyzer');
+
+    // AI badge
+    const badgeX = ml + propW + analyzerW + 4;
+    fc(colors.ai);
+    doc.roundedRect(badgeX, 16, 16, 10, 3, 3, 'F');
+    doc.setFontSize(7);
+    tc(colors.white);
+    doc.text('AI', badgeX + 8, 23, { align: 'center' });
+
+    // Tagline
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    tc(colors.muted);
+    doc.text('REAL ESTATE DEAL CALCULATOR', ml, 36);
+
+    // Date
+    const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    doc.setFontSize(8);
+    tc(colors.muted);
+    doc.text(dateStr, pw - mr, 36, { align: 'right' });
+
+    y = 58;
+
+    // Property address
+    if (r.address && r.address !== 'N/A') {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      tc(colors.muted);
+      doc.text('PROPERTY ADDRESS', ml, y);
+      y += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      tc(colors.text);
+      doc.text(r.address, ml, y);
+      y += 12;
+    }
+
+    // ---- VERDICT BANNER ----
+    let verdictColor, verdictLabel, verdictSub;
+    if (r.score >= 5) {
+      verdictColor = colors.green;
+      verdictLabel = 'Strong Deal';
+      verdictSub = r.score + '/6 metrics passing — this looks promising!';
+    } else if (r.score >= 3) {
+      verdictColor = colors.yellow;
+      verdictLabel = 'Average Deal';
+      verdictSub = r.score + '/6 metrics passing — negotiate or run the numbers again.';
+    } else {
+      verdictColor = colors.red;
+      verdictLabel = 'Weak Deal';
+      verdictSub = r.score + '/6 metrics passing — the numbers don\'t favor this one.';
+    }
+
+    // Verdict box
+    fc(colors.surface);
+    doc.roundedRect(ml, y, cw, 32, 3, 3, 'F');
+    dc(verdictColor);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(ml, y, cw, 32, 3, 3, 'S');
+    // Accent top line
+    fc(verdictColor);
+    doc.rect(ml, y, cw, 2, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    tc(verdictColor);
+    doc.text(verdictLabel, pw / 2, y + 15, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    tc(colors.muted);
+    doc.text(verdictSub, pw / 2, y + 24, { align: 'center' });
+
+    y += 40;
+
+    // ---- AI COMMENTARY ----
+    if (r.commentary) {
+      checkPage(30);
+      fc(colors.surface);
+      const commentLines = doc.setFont('helvetica', 'normal').setFontSize(9).splitTextToSize(r.commentary, cw - 16);
+      const commentH = commentLines.length * 4.5 + 18;
+      doc.roundedRect(ml, y, cw, commentH, 3, 3, 'F');
+      fc(colors.ai);
+      doc.rect(ml, y, cw, 1.5, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      tc(colors.ai2);
+      doc.text('✦  AI INSIGHT', ml + 8, y + 9);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      tc(colors.text);
+      doc.text(commentLines, ml + 8, y + 17);
+      y += commentH + 8;
+    }
+
+    // ---- METRICS GRID (2 columns, 3 rows) ----
+    checkPage(70);
+    const metrics = [
+      { name: 'Cap Rate', value: r.capRate.toFixed(2) + '%', pass: r.passes[0], target: '≥ 6%' },
+      { name: 'Cash-on-Cash', value: r.cashOnCash.toFixed(2) + '%', pass: r.passes[1], target: '≥ 8%' },
+      { name: 'DSCR', value: r.dscr.toFixed(2), pass: r.passes[2], target: '≥ 1.25' },
+      { name: 'Rent Multiplier', value: r.grm.toFixed(1) + 'x', pass: r.passes[3], target: '< 10x' },
+      { name: '1% Rule', value: r.onePctRule.toFixed(2) + '%', pass: r.passes[4], target: '≥ 1%' },
+      { name: 'Monthly Cash Flow', value: $$(r.monthlyCashFlow), pass: r.passes[5], target: '> $0' },
+    ];
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    tc(colors.muted);
+    doc.text('KEY METRICS', ml, y);
+    y += 6;
+
+    const mCardW = (cw - 6) / 2;
+    const mCardH = 24;
+
+    metrics.forEach((m, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      if (col === 0 && i > 0) checkPage(mCardH + 4);
+      const cx = ml + col * (mCardW + 6);
+      const cy = y + row * (mCardH + 4);
+
+      fc(colors.surface);
+      doc.roundedRect(cx, cy, mCardW, mCardH, 2, 2, 'F');
+      // Top accent
+      fc(m.pass ? colors.green : colors.red);
+      doc.rect(cx, cy, mCardW, 1.5, 'F');
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      tc(colors.muted);
+      doc.text(m.name.toUpperCase(), cx + 6, cy + 7);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      tc(m.pass ? colors.green : colors.red);
+      doc.text(m.value, cx + 6, cy + 16);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      tc(colors.muted);
+      doc.text('Target: ' + m.target, cx + 6, cy + 21);
+
+      // Pass/Fail badge
+      const badgeText = m.pass ? 'PASS' : 'FAIL';
+      const badgeColor = m.pass ? colors.green : colors.red;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6);
+      const btw = doc.getTextWidth(badgeText);
+      const bx = cx + mCardW - btw - 12;
+      fc(m.pass ? [30, 60, 40] : [70, 30, 30]);
+      doc.roundedRect(bx, cy + 17, btw + 8, 6, 2, 2, 'F');
+      tc(badgeColor);
+      doc.text(badgeText, bx + 4, cy + 21.5);
+    });
+
+    y += Math.ceil(metrics.length / 2) * (mCardH + 4) + 6;
+
+    // ---- FINANCIAL BREAKDOWN ----
+    checkPage(80);
+
+    function sectionCard(title, icon, rows) {
+      checkPage(12 + rows.length * 7 + 4);
+      // Title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      tc(colors.accent);
+      doc.text(icon + '  ' + title, ml, y);
+      y += 3;
+      dc(colors.border);
+      doc.setLineWidth(0.2);
+      doc.line(ml, y, ml + cw, y);
+      y += 5;
+
+      rows.forEach((row, i) => {
+        checkPage(8);
+        const isHighlight = row.highlight;
+        if (isHighlight) {
+          fc(colors.surface2);
+          doc.roundedRect(ml, y - 3.5, cw, 7.5, 1, 1, 'F');
+        }
+
+        doc.setFont('helvetica', isHighlight ? 'bold' : 'normal');
+        doc.setFontSize(9);
+        tc(isHighlight ? colors.text : colors.muted);
+        doc.text(row.label, ml + 4, y);
+
+        const valColor = row.color === 'green' ? colors.green : row.color === 'red' ? colors.red : (isHighlight ? colors.accent2 : colors.text);
+        tc(valColor);
+        doc.setFont('helvetica', 'bold');
+        doc.text(row.value, ml + cw - 4, y, { align: 'right' });
+
+        y += 7;
+      });
+      y += 4;
+    }
+
+    sectionCard('Cash to Close', '💰', [
+      { label: 'Down Payment (' + r.downPct.toFixed(0) + '%)', value: $$(r.downPayment) },
+      { label: 'Closing Costs (' + r.closingCostPct.toFixed(1) + '%)', value: $$(r.closingCosts) },
+      { label: 'Rehab / Repairs', value: $$(r.rehabCosts) },
+      { label: 'Total Cash Needed', value: $$(r.totalCashInvested), highlight: true },
+    ]);
+
+    sectionCard('Annual Income', '🏠', [
+      { label: 'Gross Rent (' + r.numUnits + ' unit × $' + r.monthlyRent.toLocaleString() + '/mo)', value: $$(r.grossMonthlyRent * 12) },
+      { label: 'Vacancy Loss (' + r.vacancyRate.toFixed(1) + '%)', value: '-' + $$(r.vacancyLoss * 12), color: 'red' },
+      { label: 'Effective Income', value: $$(r.annualIncome), highlight: true },
+    ]);
+
+    sectionCard('Expenses & Cash Flow', '📊', [
+      { label: 'Property Taxes', value: '-' + $$(r.propertyTax), color: 'red' },
+      { label: 'Insurance', value: '-' + $$(r.insurance), color: 'red' },
+      { label: 'Maintenance', value: '-' + $$(r.maintenance), color: 'red' },
+      { label: 'Property Mgmt', value: '-' + $$(r.propertyMgmtAnnual), color: 'red' },
+      { label: 'Utilities', value: '-' + $$(r.utilitiesAnnual), color: 'red' },
+      { label: 'Other Expenses', value: '-' + $$(r.otherExpensesAnnual), color: 'red' },
+      { label: 'Total Operating Expenses', value: '-' + $$(r.annualExpenses), highlight: true },
+      { label: 'Net Operating Income (NOI)', value: $$(r.noi), highlight: true, color: r.noi >= 0 ? 'green' : 'red' },
+      { label: 'Annual Debt Service', value: '-' + $$(r.annualDebtService), color: 'red' },
+      { label: 'Annual Cash Flow', value: $$(r.annualCashFlow), highlight: true, color: r.annualCashFlow >= 0 ? 'green' : 'red' },
+      { label: 'Monthly Cash Flow', value: $$(r.monthlyCashFlow), highlight: true, color: r.monthlyCashFlow >= 0 ? 'green' : 'red' },
+    ]);
+
+    sectionCard('Mortgage Details', '🏦', [
+      { label: 'Loan Amount', value: $$(r.loanAmount) },
+      { label: 'Interest Rate', value: r.interestRate.toFixed(2) + '%' },
+      { label: 'Loan Term', value: r.loanTerm + ' years' },
+      { label: 'Monthly Payment (P&I)', value: $$(r.monthlyMortgage), highlight: true },
+    ]);
+
+    // ---- FOOTER ----
+    checkPage(20);
+    y += 4;
+    dc(colors.border);
+    doc.setLineWidth(0.2);
+    doc.line(ml, y, ml + cw, y);
+    y += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    tc(colors.muted);
+    doc.text('PropAnalyzer AI — For educational purposes only. Consult a financial advisor before investing.', pw / 2, y, { align: 'center' });
+    y += 4;
+    doc.text('Generated ' + new Date().toLocaleString(), pw / 2, y, { align: 'center' });
+
+    // Generate filename
+    const addrSlug = r.address && r.address !== 'N/A' ? r.address.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30) : 'deal';
+    doc.save('PropAnalyzer_' + addrSlug + '_' + new Date().toISOString().slice(0,10) + '.pdf');
+  }
+</script>
+</body>
+</html>
